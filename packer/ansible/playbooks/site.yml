@@ -1,0 +1,86 @@
+---
+- name: Close room golden image hardening
+  hosts: localhost
+  connection: local
+  become: true
+  
+  vars:
+    artifacts_dir: "{{ playbook_dir }}/../artifacts"
+  
+  pre_tasks:
+    - name: Create artifacts directory
+      file:
+        path: "{{ artifacts_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+      become: false
+    
+    - name: Display build info
+      debug:
+        msg: |
+          ==========================================
+          Rocky Linux 9 STIG Hardening Build
+          ==========================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Hostname: {{ ansible_hostname }}
+          Kernel: {{ ansible_kernel }}
+          ==========================================
+  
+  roles:
+    - stig_base
+    - ssh_hardening
+    - auditd
+    - sysctl
+    - pam
+    - logging
+    - kdump
+    - tools
+    - validation  # Pre-scan validation
+    - openscap    # Final compliance scan
+  
+  post_tasks:
+    - name: Generate build manifest
+      copy:
+        content: |
+          Build Timestamp: {{ ansible_date_time.iso8601 }}
+          Hostname: {{ ansible_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Kernel: {{ ansible_kernel }}
+          FIPS: Enabled
+          SELinux: {{ ansible_selinux.status }}
+          
+          Hardening Roles Applied:
+          - stig_base
+          - ssh_hardening
+          - auditd
+          - sysctl
+          - pam
+          - logging
+          - kdump
+          - tools
+          - validation
+          - openscap
+          
+          OpenSCAP Results: See artifacts/openscap-report-*.html
+        dest: /root/build-manifest.txt
+        mode: '0600'
+    
+    - name: Final build status
+      debug:
+        msg: |
+          ==========================================
+          Build completed successfully!
+          ==========================================
+          
+          Artifacts available in: {{ artifacts_dir }}
+          - OpenSCAP HTML report
+          - OpenSCAP XML results
+          
+          Next steps:
+          1. Review OpenSCAP report
+          2. Test VM functionality
+          3. Deploy to closed lab environment
+          ==========================================
+          

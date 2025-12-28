@@ -1,0 +1,41 @@
+---
+# ADDED: Ensure directory exists
+- name: Ensure OpenSCAP directories exist
+  file:
+    path: /root/openscap
+    state: directory
+    mode: '0700'
+
+# ADDED: Copy tailoring file to expected location
+- name: Copy tailoring file
+  copy:
+    src: tailoring.xml
+    dest: /tmp/ansible/files/tailoring.xml
+    mode: '0644'
+
+- name: Run DISA STIG scan with tailoring
+  command: >
+    oscap xccdf eval
+    --profile xccdf_org.ssgproject.content_profile_stig
+    --tailoring-file /tmp/ansible/files/tailoring.xml
+    --results /root/openscap/results.xml
+    --report /root/openscap/report.html
+    /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
+  register: oscap_result
+  failed_when: oscap_result.rc not in [0,2]
+
+# ADDED: Save report for review (optional, can be removed)
+- name: Fetch OpenSCAP report for artifact preservation
+  fetch:
+    src: /root/openscap/report.html
+    dest: "{{ playbook_dir }}/../artifacts/openscap-report.html"
+    flat: yes
+  ignore_errors: yes
+
+- name: Fail build if non-waived STIG findings exist
+  fail:
+    msg: >
+      OpenSCAP detected non-waived STIG findings.
+      Build FAILED. Review /root/openscap/report.html
+  when: oscap_result.rc == 2
+  

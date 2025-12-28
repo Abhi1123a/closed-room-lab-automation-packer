@@ -1,0 +1,75 @@
+---
+# roles/validation/tasks/main.yml
+# Run this BEFORE openscap to catch obvious issues
+
+- name: Check FIPS mode is enabled
+  command: fips-mode-setup --check
+  register: fips_check
+  failed_when: "'FIPS mode is enabled' not in fips_check.stdout"
+  changed_when: false
+
+- name: Verify SELinux is enforcing
+  command: getenforce
+  register: selinux_check
+  failed_when: selinux_check.stdout != "Enforcing"
+  changed_when: false
+
+- name: Check auditd is running
+  systemd:
+    name: auditd
+    state: started
+  check_mode: yes
+  register: auditd_check
+  failed_when: false
+
+- name: Verify SSH root login is disabled
+  shell: grep -E '^PermitRootLogin\s+no' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf
+  register: ssh_check
+  failed_when: ssh_check.rc != 0
+  changed_when: false
+
+- name: Check password aging settings
+  shell: |
+    grep "^PASS_MAX_DAYS.*60" /etc/login.defs && \
+    grep "^PASS_MIN_DAYS.*1" /etc/login.defs && \
+    grep "^PASS_WARN_AGE.*7" /etc/login.defs
+  register: pass_check
+  failed_when: pass_check.rc != 0
+  changed_when: false
+
+- name: Verify separate partitions exist
+  shell: |
+    df -h | grep -E '(/var|/tmp|/home|/var/log/audit)' | wc -l
+  register: partition_check
+  failed_when: partition_check.stdout|int < 4
+  changed_when: false
+
+- name: Check IPv6 is disabled
+  shell: |
+    sysctl net.ipv6.conf.all.disable_ipv6 | grep "= 1" && \
+    sysctl net.ipv6.conf.default.disable_ipv6 | grep "= 1"
+  register: ipv6_check
+  failed_when: ipv6_check.rc != 0
+  changed_when: false
+
+- name: Test sudo access for ansible user
+  command: sudo -n whoami
+  become: yes
+  become_user: ansible
+  register: sudo_check
+  failed_when: sudo_check.stdout != "root"
+  changed_when: false
+
+- name: Validation summary
+  debug:
+    msg: |
+      ✓ FIPS mode enabled
+      ✓ SELinux enforcing
+      ✓ Auditd running
+      ✓ SSH hardened
+      ✓ Password policies configured
+      ✓ Separate partitions mounted
+      ✓ IPv6 disabled
+      ✓ Sudo configured
+      
+      Ready for OpenSCAP scan

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FIXED: Changed namespace from xccdf to xccdf-1.2 (required format) -->
+<xccdf-1.2:Tailoring
+  xmlns:xccdf-1.2="http://checklists.nist.gov/xccdf/1.2"
+  id="xccdf_custom_tailoring_rocky9-stig">
+
+  <!-- ADDED: Required benchmark reference -->
+  <xccdf-1.2:benchmark href="/usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml"/>
+  
+  <!-- ADDED: Required version -->
+  <xccdf-1.2:version time="2024-01-01T00:00:00">1.0</xccdf-1.2:version>
+  
+  <!-- ADDED: Profile wrapper (required to extend base STIG) -->
+  <xccdf-1.2:Profile id="xccdf_custom_profile_rocky9-stig-tailored">
+    <xccdf-1.2:title>Rocky Linux 9 STIG Tailoring (VM / Air-Gapped)</xccdf-1.2:title>
+    <xccdf-1.2:description>
+      Approved STIG exceptions for VMware-based, air-gapped closed room systems.
+    </xccdf-1.2:description>
+
+    <!-- ADDED: Extend base STIG profile -->
+    <xccdf-1.2:extends idref="xccdf_org.ssgproject.content_profile_stig"/>
+
+    <!-- Your original waivers (just wrapped in Profile) -->
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_kdump_service_enabled" selected="false"/>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_service_bluetooth_disabled" selected="false"/>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_wireless_disable_interfaces" selected="false"/>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_smartcard_auth" selected="false"/>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_ipv6_disable" selected="false"/>
+    <xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_usb_storage_disabled" selected="false"/>
+  
+  </xccdf-1.2:Profile>
+
+</xccdf-1.2:Tailoring>
